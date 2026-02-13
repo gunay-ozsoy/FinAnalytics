@@ -6,6 +6,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from src.integrations.marketaux import get_ticker_and_industry_news
+
+
 TICKERS = {
     "Apple": "AAPL",
     "Microsoft": "MSFT",
@@ -142,11 +145,6 @@ def dummy_ticker_about(ticker: str) -> str:
 
 
 def render_logo_or_placeholder(ticker: str) -> None:
-    """
-    Logo dosyası varsa gösterir. Yoksa placeholder kutu gösterir.
-    Logo konumu: app/assets/logos/
-    Dosya adı: ticker -> güvenli isim (örn AAPL.png, CAG_US.png, BF_B_US.png)
-    """
     logo_path = LOGO_DIR / ticker_to_logo_filename(ticker)
 
     if logo_path.exists():
@@ -171,6 +169,30 @@ def render_logo_or_placeholder(ticker: str) -> None:
         """,
         unsafe_allow_html=True
     )
+
+
+@st.cache_data(ttl=600)
+def fetch_marketaux_news(selected_ticker: str) -> dict:
+    return get_ticker_and_industry_news(selected_ticker, country="us", n=10, per_req=3)
+
+
+def render_news_block(prefix: str, idx: int, it: dict) -> None:
+    title = (it.get("title") or "").strip()
+    published_at = (it.get("published_at") or "").strip()
+    source = (it.get("source") or "").strip()
+    desc = (it.get("description") or "").strip()
+    snippet = (it.get("snippet") or "").strip()
+    url = (it.get("url") or "").strip()
+
+    st.write(f"{prefix} {idx}. {title}")
+    if published_at or source:
+        st.write(f"{published_at} | {source}".strip(" |"))
+    if desc:
+        st.write(desc)
+    if snippet:
+        st.write(snippet)
+    if url:
+        st.write(url)
 
 
 st.set_page_config(page_title="FinAnalytics", layout="wide")
@@ -200,12 +222,10 @@ if not selected_ticker:
         "FinAnalytics, seçilen hisse için kısa/orta/uzun vadeli model çıktıları, "
         "LLM tabanlı haber ve sektör özetleri ile e-posta üzerinden raporlama akışlarını "
         "sunmayı hedefleyen bir Streamlit dashboard şablonudur. "
-        "Bu sürüm tamamen deterministik sahte (dummy) veriyle çalışır ve dış API çağrısı yapmaz. "
         "Dashboard bölümlerini açmak için soldan bir hisse seçin."
     )
     st.stop()
 
-# Başlık satırı: solda Apple (AAPL), sağda logo alanı
 left, right = st.columns([5, 1.5], vertical_alignment="center")
 with left:
     st.markdown(f"## {selected_label} ({selected_ticker})")
@@ -243,20 +263,32 @@ with tabs[1]:
     st.dataframe(scenario, use_container_width=True)
 
 with tabs[2]:
-    st.header("Haber & Sektör Özetleri (Sahte)")
+    st.header("Haber & Sektör")
 
-    news_list = dummy_news_summaries(selected_ticker)
-    sector_s = dummy_sector_summary(selected_ticker)
-    score, sentiment = compute_dummy_score(news_list, sector_s)
+    use_marketaux = st.toggle("Marketaux ile gerçek haberleri çek", value=True)
 
-    st.subheader("Son Haberler (Sahte)")
-    for n in news_list:
-        st.write(f"- {n}")
+    if use_marketaux:
+        try:
+            with st.spinner("Marketaux haberleri çekiliyor..."):
+                result = fetch_marketaux_news(selected_ticker)
 
-    st.subheader("Sektör Özeti (Sahte)")
-    st.write(sector_s)
+            st.caption(f"Symbol: {result['symbol']} | Industry: {result['industry']}")
 
-    st.metric("Bileşik Skor (Sahte)", f"{score}", sentiment)
+            st.subheader("Ticker Haberleri (Son 10)")
+            for i, it in enumerate(result["ticker_news"], start=1):
+                render_news_block("Ticker", i, it)
+                st.write("---")
+
+            st.subheader("Industry Haberleri (Son 10)")
+            for i, it in enumerate(result["industry_news"], start=1):
+                render_news_block("Industry", i, it)
+                st.write("---")
+
+        except Exception as e:
+            st.error(f"Marketaux hata: {e}")
+            st.info("Kontrol: set -a && source .env && set +a (MARKETAUX_API_TOKEN yüklü mü?)")
+    else:
+        st.info("Gerçek haberleri görmek için toggle'ı aç.")
 
 with tabs[3]:
     st.header("Rapor Yönetimi")
