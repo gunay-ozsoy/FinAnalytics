@@ -88,23 +88,50 @@ def render_logo_or_placeholder(ticker: str) -> None:
     )
 
 
-def render_news_block(prefix: str, idx: int, it: dict) -> None:
+def _fmt_dt(published_at: str) -> str:
+    if not published_at:
+        return ""
+    try:
+        dt = pd.to_datetime(published_at)
+        # tz-aware ise tz bilgisini düşür
+        if getattr(dt, "tzinfo", None) is not None:
+            dt = dt.tz_convert(None)
+        return dt.strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return published_at
+
+
+def render_news_item(idx: int, kind_label: str, it: dict) -> None:
+    """
+    İstenen format:
+    1. Şirket Haberi: Başlık, Tarih
+    Haber içeriği
+    Haber linki
+    """
     title = (it.get("title") or "").strip()
-    published_at = (it.get("published_at") or "").strip()
+    published_at = _fmt_dt((it.get("published_at") or "").strip())
     source = (it.get("source") or "").strip()
     desc = (it.get("description") or "").strip()
     snippet = (it.get("snippet") or "").strip()
     url = (it.get("url") or "").strip()
 
-    st.write(f"{prefix} {idx}. {title}")
-    if published_at or source:
-        st.write(f"{published_at} | {source}".strip(" |"))
-    if desc:
-        st.write(desc)
-    if snippet:
-        st.write(snippet)
+    # 1. Şirket Haberi: Başlık, Tarih
+    header_parts = [f"{idx}. {kind_label}: {title}"]
+    meta_parts = [p for p in [published_at, source] if p]
+    if meta_parts:
+        header_parts.append(f"({', '.join(meta_parts)})")
+    st.write(" ".join(header_parts).strip())
+
+    # Haber içeriği
+    content = desc or snippet
+    if content:
+        st.write(content)
+
+    # Haber linki
     if url:
         st.write(url)
+
+    st.markdown("---")
 
 
 @st.cache_data
@@ -168,7 +195,6 @@ def dummy_ticker_about(ticker: str) -> str:
 
 @st.cache_data(ttl=600)
 def fetch_marketaux_news(selected_ticker: str, selected_label: str) -> dict:
-    # Free plan için per_req=3; ücretli planda 10 yapabilirsin.
     return get_ticker_and_industry_news(
         selected_ticker,
         company_name=selected_label,
@@ -214,7 +240,7 @@ with left:
 with right:
     render_logo_or_placeholder(selected_ticker)
 
-tabs = st.tabs(["Hakkında", "Model Çıktıları", "Haber & Sektör", "Raporlar"])
+tabs = st.tabs(["Hakkında", "Model Çıktıları", "Haber Bülteni", "Raporlar"])
 
 with tabs[0]:
     st.header("Hakkında")
@@ -240,7 +266,7 @@ with tabs[1]:
     st.dataframe(scenario, use_container_width=True)
 
 with tabs[2]:
-    st.header("Haber & Sektör")
+    st.header("Haber Bülteni")
 
     use_marketaux = st.toggle("Marketaux ile gerçek haberleri çek", value=True, key="use_marketaux")
 
@@ -251,15 +277,13 @@ with tabs[2]:
 
             st.caption(f"Symbol: {result['symbol']} | Industry: {result['industry']}")
 
-            st.subheader("Ticker Haberleri (Son 10)")
-            for i, it in enumerate(result["ticker_news"], start=1):
-                render_news_block("Ticker", i, it)
-                st.write("---")
+            st.subheader("Şirket Haberleri (Son 10)")
+            for i, it in enumerate(result.get("ticker_news", []), start=1):
+                render_news_item(i, "Şirket Haberi", it)
 
-            st.subheader("Industry Haberleri (Son 10)")
-            for i, it in enumerate(result["industry_news"], start=1):
-                render_news_block("Industry", i, it)
-                st.write("---")
+            st.subheader("Sektör Haberleri (Son 10)")
+            for i, it in enumerate(result.get("industry_news", []), start=1):
+                render_news_item(i, "Sektör Haberi", it)
 
         except Exception as e:
             st.error(f"Marketaux hata: {e}")
