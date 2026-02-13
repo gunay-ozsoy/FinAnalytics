@@ -13,40 +13,40 @@ TICKERS = {
     "Apple": "AAPL",
     "Microsoft": "MSFT",
     "NVIDIA": "NVDA",
-    "Conagra Brands": "CAG.US",
-    "Hershey": "HSY.US",
-    "Coca-Cola Europacific Partners": "CCEP.US",
-    "Kroger": "KR.US",
-    "Sysco": "SYY.US",
-    "Campbell Soup Company": "CPB.US",
-    "Keurig Dr Pepper": "KDP.US",
-    "PepsiCo": "PEP.US",
-    "Tyson Foods": "TSN.US",
-    "JM Smucker": "SJM.US",
-    "Kraft Heinz": "KHC.US",
-    "Philip Morris International": "PM.US",
-    "Altria": "MO.US",
-    "Hormel Foods": "HRL.US",
-    "Estée Lauder": "EL.US",
-    "Colgate-Palmolive": "CL.US",
-    "Kellogg": "K.US",
-    "General Mills": "GIS.US",
-    "Kimberly-Clark": "KMB.US",
-    "Clorox": "CLX.US",
-    "McCormick & Company": "MKC.US",
-    "Coca-Cola": "KO.US",
-    "Walmart": "WMT.US",
-    "Costco": "COST.US",
-    "Dollar General": "DG.US",
-    "Dollar Tree": "DLTR.US",
-    "Walgreens Boots Alliance": "WBA.US",
-    "Monster Beverage": "MNST.US",
-    "Constellation Brands": "STZ.US",
-    "Mondelez International": "MDLZ.US",
-    "Molson Coors": "TAP.US",
-    "Lamb Weston": "LW.US",
-    "Church & Dwight": "CHD.US",
-    "Brown-Forman": "BF.B.US",
+    "Conagra Brands": "CAG",
+    "Hershey": "HSY",
+    "Coca-Cola Europacific Partners": "CCEP",
+    "Kroger": "KR",
+    "Sysco": "SYY",
+    "Campbell Soup Company": "CPB",
+    "Keurig Dr Pepper": "KDP",
+    "PepsiCo": "PEP",
+    "Tyson Foods": "TSN",
+    "JM Smucker": "SJM",
+    "Kraft Heinz": "KHC",
+    "Philip Morris International": "PM",
+    "Altria": "MO",
+    "Hormel Foods": "HRL",
+    "Estée Lauder": "EL",
+    "Colgate-Palmolive": "CL",
+    "Kellogg": "K",
+    "General Mills": "GIS",
+    "Kimberly-Clark": "KMB",
+    "Clorox": "CLX",
+    "McCormick & Company": "MKC",
+    "Coca-Cola": "KO",
+    "Walmart": "WMT",
+    "Costco": "COST",
+    "Dollar General": "DG",
+    "Dollar Tree": "DLTR",
+    "Walgreens Boots Alliance": "WBA",
+    "Monster Beverage": "MNST",
+    "Constellation Brands": "STZ",
+    "Mondelez International": "MDLZ",
+    "Molson Coors": "TAP",
+    "Lamb Weston": "LW",
+    "Church & Dwight": "CHD",
+    "Brown-Forman": "BF.B",
 }
 
 LOGO_DIR = Path(__file__).resolve().parent / "assets" / "logos"
@@ -59,89 +59,6 @@ def ticker_to_logo_filename(ticker: str) -> str:
 
 def is_valid_email(email: str) -> bool:
     return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
-
-
-@st.cache_data
-def generate_dummy_price_series(ticker: str) -> pd.DataFrame:
-    np.random.seed(hash(ticker) % 2**32)
-    dates = pd.date_range(end=pd.Timestamp.today(), periods=60)
-    prices = np.cumsum(np.random.randn(len(dates)) * 0.5 + 0.2) + 100
-    return pd.DataFrame({"Tarih": dates, "Fiyat": prices})
-
-
-@st.cache_data
-def run_dummy_models(ticker: str) -> dict:
-    np.random.seed((hash(ticker) + 1337) % 2**32)
-    metrics = {
-        "expected_return": float(np.round(np.random.uniform(-5, 10), 2)),
-        "volatility": float(np.round(np.random.uniform(2, 8), 2)),
-        "confidence": float(np.round(np.random.uniform(50, 100), 2)),
-    }
-    scenario = pd.DataFrame({
-        "Senaryo": ["Ayı", "Baz", "Boğa"],
-        "Getiri (%)": np.random.uniform(-15, 25, size=3).round(2)
-    })
-    return {"metrics": metrics, "scenario": scenario}
-
-
-@st.cache_data
-def dummy_news_summaries(ticker: str) -> list[str]:
-    np.random.seed((hash(ticker) + 42) % 2**32)
-    eylemler = ["beklentiyi aştı", "beklentinin altında kaldı", "yönlendirme paylaştı", "duyurdu", "genişledi"]
-    konular = ["finansal sonuçlar", "marj görünümü", "maliyet optimizasyonu", "yeni ürün hattı", "bölgesel büyüme"]
-    haberler = []
-    for i in range(5):
-        e = np.random.choice(eylemler)
-        k = np.random.choice(konular)
-        haberler.append(f"{ticker} sahte haber {i+1}: Şirket {k} konusunda {e}.")
-    return haberler
-
-
-@st.cache_data
-def dummy_sector_summary(ticker: str) -> str:
-    np.random.seed((hash(ticker) + 7) % 2**32)
-    sektorler = ["Temel Tüketim", "İhtiyari Tüketim", "Sağlık", "Sanayi"]
-    tonlar = ["istikrarlı", "karma", "hafif pozitif", "hafif negatif"]
-    return f"Sektör özeti (sahte): {np.random.choice(sektorler)} tarafında kısa vadeli sinyaller {np.random.choice(tonlar)}."
-
-
-@st.cache_data
-def compute_dummy_score(news: list[str], sector_summary: str) -> tuple[int, str]:
-    s = sum(len(n) for n in news) + len(sector_summary)
-    score = int(s % 101)
-    etiket = "Pozitif" if score > 60 else "Nötr" if score > 40 else "Negatif"
-    return score, etiket
-
-
-@st.cache_data
-def dummy_ticker_about(ticker: str) -> str:
-    np.random.seed((hash(ticker) + 2026) % 2**32)
-    profiller = [
-        "istikrarlı nakit akışı üreten defansif bir şirket",
-        "fiyatlama gücü dinamikleri olan olgun bir marka portföyü",
-        "marj hassasiyeti yüksek, dağıtım odaklı bir operasyon",
-        "kur riskine açık, global ölçekte tüketiciye dönük bir yapı",
-        "mevsimsellik etkileri bulunan, talep dayanıklılığı yüksek bir şirket",
-    ]
-    riskler = [
-        "girdi maliyeti oynaklığı", "kur dalgalanmaları", "rekabetçi fiyat baskısı",
-        "dağıtım kısıtları", "regülasyon kaynaklı gündem riski"
-    ]
-    katalizorler = [
-        "yönlendirme güncellemeleri", "beklenti üstü finansal sonuçlar", "fiyatlama aksiyonları",
-        "maliyet azaltım programları", "kategori büyümesinde hızlanma"
-    ]
-
-    p = np.random.choice(profiller)
-    r1, r2 = np.random.choice(riskler, size=2, replace=False)
-    c1, c2 = np.random.choice(katalizorler, size=2, replace=False)
-
-    return (
-        f"{ticker} (sahte profil) bu şablonda {p} olarak kurgulanmıştır.\n\n"
-        f"İzlenmesi gerekenler (sahte): {r1}, {r2}.\n\n"
-        f"Olası katalizörler (sahte): {c1}, {c2}.\n\n"
-        "TODO: Bu alanı gerçek şirket/sektör açıklaması, temel veriler ve model yorumlarıyla değiştir."
-    )
 
 
 def render_logo_or_placeholder(ticker: str) -> None:
@@ -167,13 +84,8 @@ def render_logo_or_placeholder(ticker: str) -> None:
             Logo (PNG) eklenecek
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
-
-
-@st.cache_data(ttl=600)
-def fetch_marketaux_news(selected_ticker: str) -> dict:
-    return get_ticker_and_industry_news(selected_ticker, country="us", n=10, per_req=3)
 
 
 def render_news_block(prefix: str, idx: int, it: dict) -> None:
@@ -195,6 +107,77 @@ def render_news_block(prefix: str, idx: int, it: dict) -> None:
         st.write(url)
 
 
+@st.cache_data
+def generate_dummy_price_series(ticker: str) -> pd.DataFrame:
+    np.random.seed(hash(ticker) % 2**32)
+    dates = pd.date_range(end=pd.Timestamp.today(), periods=60)
+    prices = np.cumsum(np.random.randn(len(dates)) * 0.5 + 0.2) + 100
+    return pd.DataFrame({"Tarih": dates, "Fiyat": prices})
+
+
+@st.cache_data
+def run_dummy_models(ticker: str) -> dict:
+    np.random.seed((hash(ticker) + 1337) % 2**32)
+    metrics = {
+        "expected_return": float(np.round(np.random.uniform(-5, 10), 2)),
+        "volatility": float(np.round(np.random.uniform(2, 8), 2)),
+        "confidence": float(np.round(np.random.uniform(50, 100), 2)),
+    }
+    scenario = pd.DataFrame(
+        {"Senaryo": ["Ayı", "Baz", "Boğa"], "Getiri (%)": np.random.uniform(-15, 25, size=3).round(2)}
+    )
+    return {"metrics": metrics, "scenario": scenario}
+
+
+@st.cache_data
+def dummy_ticker_about(ticker: str) -> str:
+    np.random.seed((hash(ticker) + 2026) % 2**32)
+    profiller = [
+        "istikrarlı nakit akışı üreten defansif bir şirket",
+        "fiyatlama gücü dinamikleri olan olgun bir marka portföyü",
+        "marj hassasiyeti yüksek, dağıtım odaklı bir operasyon",
+        "kur riskine açık, global ölçekte tüketiciye dönük bir yapı",
+        "mevsimsellik etkileri bulunan, talep dayanıklılığı yüksek bir şirket",
+    ]
+    riskler = [
+        "girdi maliyeti oynaklığı",
+        "kur dalgalanmaları",
+        "rekabetçi fiyat baskısı",
+        "dağıtım kısıtları",
+        "regülasyon kaynaklı gündem riski",
+    ]
+    katalizorler = [
+        "yönlendirme güncellemeleri",
+        "beklenti üstü finansal sonuçlar",
+        "fiyatlama aksiyonları",
+        "maliyet azaltım programları",
+        "kategori büyümesinde hızlanma",
+    ]
+
+    p = np.random.choice(profiller)
+    r1, r2 = np.random.choice(riskler, size=2, replace=False)
+    c1, c2 = np.random.choice(katalizorler, size=2, replace=False)
+
+    return (
+        f"{ticker} (sahte profil) bu şablonda {p} olarak kurgulanmıştır.\n\n"
+        f"İzlenmesi gerekenler (sahte): {r1}, {r2}.\n\n"
+        f"Olası katalizörler (sahte): {c1}, {c2}.\n\n"
+        "TODO: Bu alanı gerçek şirket/sektör açıklaması, temel veriler ve model yorumlarıyla değiştir."
+    )
+
+
+@st.cache_data(ttl=600)
+def fetch_marketaux_news(selected_ticker: str, selected_label: str) -> dict:
+    # Free plan için per_req=3; ücretli planda 10 yapabilirsin.
+    return get_ticker_and_industry_news(
+        selected_ticker,
+        company_name=selected_label,
+        country="us",
+        n=10,
+        per_req=3,
+    )
+
+
 st.set_page_config(page_title="FinAnalytics", layout="wide")
 st.title("FinAnalytics Dashboard")
 
@@ -205,7 +188,7 @@ selected_ticker = TICKERS.get(selected_label, "")
 
 email = st.sidebar.text_input(
     "E-posta (raporlar için) — Mailiniz tarafınıza düzenli olarak rapor gönderilmesi için istenmektedir.",
-    key="email_input"
+    key="email_input",
 )
 
 if st.sidebar.button("E-postayı Kaydet"):
@@ -219,9 +202,8 @@ saved_email = st.session_state.get("saved_email", "")
 
 if not selected_ticker:
     st.write(
-        "FinAnalytics, seçilen hisse için kısa/orta/uzun vadeli model çıktıları, "
-        "LLM tabanlı haber ve sektör özetleri ile e-posta üzerinden raporlama akışlarını "
-        "sunmayı hedefleyen bir Streamlit dashboard şablonudur. "
+        "FinAnalytics, seçilen hisse için kısa/orta/uzun vadeli model çıktıları ve "
+        "haber/sektör verilerini göstermeyi hedefleyen bir Streamlit dashboard şablonudur. "
         "Dashboard bölümlerini açmak için soldan bir hisse seçin."
     )
     st.stop()
@@ -245,15 +227,10 @@ with tabs[1]:
     metrics = results["metrics"]
     scenario = results["scenario"]
 
-    news_list = dummy_news_summaries(selected_ticker)
-    sector_s = dummy_sector_summary(selected_ticker)
-    score, sentiment = compute_dummy_score(news_list, sector_s)
-
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Beklenen Getiri", f"{metrics['expected_return']}%")
     c2.metric("Volatilite", f"{metrics['volatility']}%")
     c3.metric("Güven", f"{metrics['confidence']}%")
-    c4.metric("Bileşik Skor", score, sentiment)
 
     df_prices = generate_dummy_price_series(selected_ticker)
     fig = px.line(df_prices, x="Tarih", y="Fiyat", title=f"{selected_ticker} Fiyat (Sahte)")
@@ -265,12 +242,12 @@ with tabs[1]:
 with tabs[2]:
     st.header("Haber & Sektör")
 
-    use_marketaux = st.toggle("Marketaux ile gerçek haberleri çek", value=True)
+    use_marketaux = st.toggle("Marketaux ile gerçek haberleri çek", value=True, key="use_marketaux")
 
     if use_marketaux:
         try:
             with st.spinner("Marketaux haberleri çekiliyor..."):
-                result = fetch_marketaux_news(selected_ticker)
+                result = fetch_marketaux_news(selected_ticker, selected_label)
 
             st.caption(f"Symbol: {result['symbol']} | Industry: {result['industry']}")
 
