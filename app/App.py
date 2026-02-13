@@ -7,7 +7,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.integrations.marketaux import get_ticker_and_industry_news
-
+from src.reports.news_prompt import build_llm_context
 
 TICKERS = {
     "Apple": "AAPL",
@@ -93,7 +93,6 @@ def _fmt_dt(published_at: str) -> str:
         return ""
     try:
         dt = pd.to_datetime(published_at)
-        # tz-aware ise tz bilgisini düşür
         if getattr(dt, "tzinfo", None) is not None:
             dt = dt.tz_convert(None)
         return dt.strftime("%Y-%m-%d %H:%M")
@@ -102,12 +101,6 @@ def _fmt_dt(published_at: str) -> str:
 
 
 def render_news_item(idx: int, kind_label: str, it: dict) -> None:
-    """
-    İstenen format:
-    1. Şirket Haberi: Başlık, Tarih
-    Haber içeriği
-    Haber linki
-    """
     title = (it.get("title") or "").strip()
     published_at = _fmt_dt((it.get("published_at") or "").strip())
     source = (it.get("source") or "").strip()
@@ -115,19 +108,16 @@ def render_news_item(idx: int, kind_label: str, it: dict) -> None:
     snippet = (it.get("snippet") or "").strip()
     url = (it.get("url") or "").strip()
 
-    # 1. Şirket Haberi: Başlık, Tarih
     header_parts = [f"{idx}. {kind_label}: {title}"]
     meta_parts = [p for p in [published_at, source] if p]
     if meta_parts:
         header_parts.append(f"({', '.join(meta_parts)})")
     st.write(" ".join(header_parts).strip())
 
-    # Haber içeriği
     content = desc or snippet
     if content:
         st.write(content)
 
-    # Haber linki
     if url:
         st.write(url)
 
@@ -276,6 +266,26 @@ with tabs[2]:
                 result = fetch_marketaux_news(selected_ticker, selected_label)
 
             st.caption(f"Symbol: {result['symbol']} | Industry: {result['industry']}")
+
+            include_links = st.toggle(
+                "LLM prompt'a linkleri dahil et",
+                value=True,
+                key="llm_include_links",
+            )
+
+            ticker_ctx, industry_ctx = build_llm_context(
+                symbol=result.get("symbol", ""),
+                industry=result.get("industry", ""),
+                ticker_news=result.get("ticker_news", []),
+                industry_news=result.get("industry_news", []),
+                include_url=include_links,
+                max_items=10,
+                max_snippet_chars=500,
+            )
+
+            with st.expander("LLM için ham bağlamı göster", expanded=False):
+                st.text_area("Şirket Bağlamı (LLM input)", ticker_ctx, height=260, key="llm_ticker_ctx")
+                st.text_area("Sektör Bağlamı (LLM input)", industry_ctx, height=260, key="llm_industry_ctx")
 
             st.subheader("Şirket Haberleri (Son 10)")
             for i, it in enumerate(result.get("ticker_news", []), start=1):
