@@ -44,12 +44,14 @@ all_predictions = predict_stocks(sector_results)
 # 5-6. Raporlar
 from generate_report import (
     print_regression_metrics, print_signal_metrics, print_top7_stock_metrics,
+    print_all_stock_rankings,
     print_price_predictions, print_optimized_params, print_signal_summary
 )
 
 print_regression_metrics(sector_results)
 print_signal_metrics(sector_results)
 print_top7_stock_metrics(all_stock_metrics)
+print_all_stock_rankings(all_stock_metrics)
 df_preds = print_price_predictions(all_predictions)
 print_optimized_params(sector_results)
 
