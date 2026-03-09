@@ -175,7 +175,18 @@ def fetch_ticker_info(ticker: str) -> dict:
     """yfinance üzerinden şirket bilgilerini çeker. Önbellek süresi: 1 saat."""
     try:
         import yfinance as yf
-        return yf.Ticker(ticker).info or {}
+        import requests as _req
+
+        session = _req.Session()
+        session.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
+        })
+        t = yf.Ticker(ticker, session=session)
+        return t.info or {}
     except Exception:
         return {}
 
