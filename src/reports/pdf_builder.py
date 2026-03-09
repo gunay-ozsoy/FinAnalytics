@@ -110,6 +110,30 @@ class _PDF(FPDF):
         self.add_page()
         self._draw_cover_band()
 
+    # ── Unicode-güvenli cell/multi_cell ───────────────────────────
+    def cell(self, *args, **kwargs):
+        """Helvetica kullanılıyorsa metni otomatik temizle."""
+        if not self._use_unicode_font:
+            # text: positional arg [4] or keyword 'text' / 'txt'
+            args = list(args)
+            if len(args) > 3 and isinstance(args[3], str):
+                args[3] = _strip_emoji(args[3])
+            for key in ("text", "txt"):
+                if key in kwargs and isinstance(kwargs[key], str):
+                    kwargs[key] = _strip_emoji(kwargs[key])
+        return super().cell(*args, **kwargs)
+
+    def multi_cell(self, *args, **kwargs):
+        """Helvetica kullanılıyorsa metni otomatik temizle."""
+        if not self._use_unicode_font:
+            args = list(args)
+            if len(args) > 2 and isinstance(args[2], str):
+                args[2] = _strip_emoji(args[2])
+            for key in ("text", "txt"):
+                if key in kwargs and isinstance(kwargs[key], str):
+                    kwargs[key] = _strip_emoji(kwargs[key])
+        return super().multi_cell(*args, **kwargs)
+
     # ── Kapak bandı ──────────────────────────────────────────────
     def _draw_cover_band(self) -> None:
         self.set_fill_color(*_DARK)
@@ -255,10 +279,22 @@ _EMOJI_RE = re.compile(
 
 
 def _strip_emoji(text: str) -> str:
-    """Bilinen emojileri eşleştirmeyle, kalanları regex ile temizler."""
+    """Bilinen emojileri eşleştirmeyle, kalanları regex ile temizler.
+    Ayrıca Türkçe özel karakterleri Latin-1 uyumlu hâle çevirir."""
     for emoji, repl in _EMOJI_MAP.items():
         text = text.replace(emoji, repl)
-    return _EMOJI_RE.sub("", text).strip()
+    text = _EMOJI_RE.sub("", text)
+    # Türkçe özel karakterleri ASCII-güvenli karşılıklarına çevir
+    _TR_MAP = str.maketrans({
+        "ş": "s", "Ş": "S", "ğ": "g", "Ğ": "G",
+        "ı": "i", "İ": "I", "ç": "c", "Ç": "C",
+        "ö": "o", "Ö": "O", "ü": "u", "Ü": "U",
+        "—": "-", "–": "-", "…": "...",
+    })
+    text = text.translate(_TR_MAP)
+    # Son çare: Latin-1'e sığmayan her şeyi kaldır
+    text = text.encode("latin-1", errors="replace").decode("latin-1")
+    return text.strip()
 
 
 def _safe(text: Any, force_ascii: bool = False) -> str:
